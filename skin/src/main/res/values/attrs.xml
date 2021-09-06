@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--文字颜色-->
+    <attr name="skin_text_color" format="color" />
+    <!--容器的背景颜色-->
+    <attr name="skin_layout_background_color" format="color" />
+    <!--按钮文字颜色-->
+    <attr name="skin_button_text_color" format="color" />
+    <!--按钮背景颜色-->
+    <attr name="skin_button_background_color" format="color" />
+</resources>

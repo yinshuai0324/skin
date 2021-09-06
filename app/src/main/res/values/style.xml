@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Skin1" parent="SkinStyle">
+        <item name="skin_text_color">#000000</item>
+        <item name="skin_layout_background_color">#F5F5F5</item>
+    </style>
+
+    <style name="Skin2" parent="SkinStyle">
+        <item name="skin_text_color">#FFFFFF</item>
+        <item name="skin_layout_background_color">#000000</item>
+    </style>
+</resources>
