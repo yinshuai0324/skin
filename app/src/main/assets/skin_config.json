@@ -1,0 +1,10 @@
+{
+  "skin1": {
+    "skin_text_color": "#000000",
+    "skin_layout_color": "#FFFFFF"
+  },
+  "skin2": {
+    "skin_text_color": "#FFFFFF",
+    "skin_layout_color": "#000000"
+  }
+}

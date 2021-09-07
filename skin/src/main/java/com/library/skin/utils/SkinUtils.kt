@@ -1,17 +1,27 @@
 package com.library.skin.utils
 
-import com.library.skin.SkinManage
-import com.library.skin.style.SkinStyle
+import android.content.Context
+import java.io.BufferedReader
+import java.io.InputStreamReader
+
 
 class SkinUtils {
     companion object {
-        /**
-         * 获取当前的样式
-         */
-        fun <T> getCurrentStyle(): T? {
-            val style = SkinManage.getCurrentStyle()
 
-            return SkinManage.getCurrentStyle() as T
+        fun getAssetsJson(context: Context?, fileName: String): String {
+            if (context != null) {
+                val stringBuffer = StringBuffer()
+                BufferedReader(InputStreamReader(context.assets.open(fileName))).use {
+                    var line = ""
+                    while (true) {
+                        line = it.readLine() ?: break
+                        stringBuffer.append(line)
+                    }
+                }
+                return stringBuffer.toString()
+            }
+            return ""
         }
+
     }
 }

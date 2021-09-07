@@ -1,22 +1,25 @@
 package com.library.skin
 
 import android.app.Activity
-import android.content.Context
-import android.content.res.TypedArray
+import android.app.Application
 import android.text.TextUtils
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
-import androidx.annotation.StyleRes
-import androidx.core.content.ContextCompat
 import androidx.core.view.children
 import com.library.skin.callback.SkinStyleHandler
 import com.library.skin.callback.SkinSupportView
-import com.library.skin.style.SkinStyle
+import com.library.skin.utils.SkinUtils
 import com.library.skin.utils.SpUtils
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import java.lang.ref.WeakReference
 
 object SkinManage {
+
+    private lateinit var application: Application
 
     /**
      * 存储Activity里面所需要改变皮肤的View
@@ -39,20 +42,16 @@ object SkinManage {
     private lateinit var skinStyleHandlerImp: SkinStyleHandler
 
     /**
-     * 用户所有的样式集合
-     */
-    private val skinStyles = ArrayList<SkinStyle>()
-
-    /**
      * 换肤的主题 默认没有 需要用户自己设置
      */
-    private var skinStyle: SkinStyle? = null
+    private var skinStyleTag: String? = ""
 
     /**
      * 存储用户切换的KEY
      */
     private const val KEY_STYLE_CONFIG = "SkinStyleConfig"
 
+    private val skinStyleManage = SkinStyleManage()
 
     /**
      * 注册Activity
@@ -65,7 +64,7 @@ object SkinManage {
                 val viewList = arrayListOf<WeakReference<View>>()
                 addActivityViews(it, viewList)
                 activityViews[activityName] = viewList
-                activityStyleTags[activityName] = skinStyle?.skinTag() ?: ""
+                activityStyleTags[activityName] = skinStyleTag ?: ""
                 applyStyle(activity)
             }
         }
@@ -90,7 +89,7 @@ object SkinManage {
                 val views = activityViews[activityName]
                 views?.forEach {
                     it.get()?.let { it1 ->
-                        skinStyleHandlerImp.styleHandler(it1, skinStyle)
+                        skinStyleHandlerImp.styleHandler(it1, getStyleByTag(skinStyleTag))
                     }
                 }
             }
@@ -139,7 +138,7 @@ object SkinManage {
      * 改变皮肤
      */
     fun changeSkin(activity: Activity, tag: String) {
-        skinStyle = getStyleByTag(tag)
+        skinStyleTag = tag
         applyStyle(activity)
         SpUtils.putString(KEY_STYLE_CONFIG, tag)
     }
@@ -151,7 +150,7 @@ object SkinManage {
     fun updateSkinStyle(activity: Activity) {
         val activityName = activity.javaClass.name
         val activityStyle = activityStyleTags[activityName]
-        if (activityStyle != skinStyle?.skinTag() ?: "") {
+        if (activityStyle != skinStyleTag ?: "") {
             applyStyle(activity)
         }
     }
@@ -160,34 +159,38 @@ object SkinManage {
     /**
      * 默认主题
      */
-    fun defaultStyleTag(style: String) {
+    fun defaultStyleTag(tag: String) {
         val styleTag = SpUtils.getString(KEY_STYLE_CONFIG)
         if (TextUtils.isEmpty(styleTag)) {
-            skinStyle = getStyleByTag(style)
-            SpUtils.putString(KEY_STYLE_CONFIG, skinStyle?.skinTag() ?: "")
+            skinStyleTag = tag
+            SpUtils.putString(KEY_STYLE_CONFIG, tag ?: "")
         } else {
-            skinStyle = getStyleByTag(styleTag)
+            skinStyleTag = styleTag
         }
     }
 
 
     /**
-     * 根据Tag获取样式
+     * 加载皮肤配置
      */
-    private fun getStyleByTag(tag: String): SkinStyle? {
-        skinStyles.forEach {
-            if (it.skinTag() == tag) {
-                return it
-            }
+    fun <T> loadSkinStyle(assets: String, clazz: Class<T>) {
+        GlobalScope.launch(Dispatchers.Main) {
+            flow {
+                val json = SkinUtils.getAssetsJson(application, assets)
+                emit(json)
+            }.flowOn(Dispatchers.IO).onCompletion { e ->
+                if (e != null) {
+                    Log.e("===>>>", "加载皮肤配置失败:${e}")
+                } else {
+                    Log.i("===>>>", "加载皮肤配置成功")
+                }
+            }.onEach {
+                //处理数据
+                skinStyleManage.formJson(it, clazz)
+            }.catch { e ->
+                Log.e("===>>>", "加载皮肤配置出现异常:${e}")
+            }.collect()
         }
-        return null
-    }
-
-    /**
-     * 获取当前样式的Style
-     */
-    fun getCurrentStyle(): SkinStyle? {
-        return skinStyle
     }
 
 
@@ -208,7 +211,24 @@ object SkinManage {
     /**
      * 设置样式
      */
-    fun setStyleConfig(vararg data: SkinStyle) {
-        skinStyles.addAll(*data.toMutableList())
+    fun setApplication(application: Application) {
+        this.application = application
+    }
+
+    /**
+     * 根据Key获取配置
+     */
+    fun getStyleByTag(tag: String?): Any? {
+        if (!TextUtils.isEmpty(tag) && skinStyleManage.styleConfig.containsKey(tag)) {
+            return skinStyleManage.styleConfig[tag]
+        }
+        return null
+    }
+
+    /**
+     * 获取当前样式的Tag
+     */
+    fun getCurrentTag(): String? {
+        return skinStyleTag
     }
 }
